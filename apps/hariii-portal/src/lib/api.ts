@@ -18,4 +18,9 @@ export const api = {
   conversations: (p?: Record<string, string>) => apiFetch<any>(`/conversations?${new URLSearchParams(p)}`),
   meetings:      (p?: Record<string, string>) => apiFetch<any>(`/meetings?${new URLSearchParams(p)}`),
   patchMeeting:  (id: string, body: object)   => apiFetch<any>(`/meetings/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  slots: {
+    list:     (p?: Record<string, string>) => apiFetch<any>(`/slots?${new URLSearchParams(p)}`),
+    generate: (body: object)               => apiFetch<any>('/slots/generate', { method: 'POST', body: JSON.stringify(body) }),
+    update:   (id: string, body: object)   => apiFetch<any>(`/slots/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  },
 };

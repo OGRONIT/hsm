@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import { alertDailySummary, alertWeeklyReport, alertSystemError } from './telegram';
 import { waAlertDailySummary } from './whatsapp';
 import { format, startOfWeek, endOfWeek, subDays } from 'date-fns';
+import { getBankStats, runMidnightBankRollover } from '../../queue/src/lib/message-bank';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,6 +41,12 @@ export function startAlertScheduler(): void {
     await runDeadLeadCleanup();
   }, { timezone: 'UTC' });
 
+  // Message bank rollover — 00:01 IST = 18:31 UTC previous day
+  cron.schedule('31 18 * * *', async () => {
+    console.log('[AlertScheduler] Running message bank rollover...');
+    await runMessageBankRollover();
+  }, { timezone: 'UTC' });
+
   // System health check — every hour
   cron.schedule('0 * * * *', async () => {
     await runHealthCheck();
@@ -49,7 +56,39 @@ export function startAlertScheduler(): void {
   console.log('  • Daily summary:   9:00pm IST');
   console.log('  • Weekly report:   Monday 9:00am IST');
   console.log('  • Dead cleanup:    2:00am IST');
+  console.log('  • Message bank:    12:01am IST');
   console.log('  • Health check:    Every hour');
+}
+
+async function runMessageBankRollover(): Promise<void> {
+  try {
+    const bank = await runMidnightBankRollover();
+    const stats = await getBankStats();
+
+    await supabase.from('system_logs').insert({
+      level: 'info',
+      source: 'cron',
+      message: 'Message bank rollover completed',
+      metadata: {
+        bankDate: bank.date,
+        todayUsed: stats.todayUsed,
+        todayAvailable: stats.todayAvailable,
+        bankedCarriedIn: stats.bankedCarriedIn,
+        bankedCarriedOut: stats.bankedCarriedOut,
+        newOutreachToday: stats.newOutreachToday,
+      },
+    });
+
+    console.log(`[AlertScheduler] ✓ Message bank rollover complete for ${bank.date}`);
+  } catch (err: any) {
+    console.error('[AlertScheduler] Message bank rollover failed:', err.message);
+    await alertSystemError({
+      type: 'Scheduler Error',
+      source: 'alerts',
+      message: `Message bank rollover failed: ${err.message}`,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

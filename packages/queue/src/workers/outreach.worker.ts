@@ -3,6 +3,7 @@ import { redis } from '../redis';
 import { OutreachJob, OutreachJobSchema, JobResult, QueueName } from '../types/jobs';
 import { addFollowupJob } from '../queues';
 import { createClient } from '@supabase/supabase-js';
+import { canSendMessage, canSendNewOutreach, recordMessageSent, recordNewOutreach } from '../lib/message-bank';
 
 // ─────────────────────────────────────────────────────────────
 // Supabase client (service role — full DB access)
@@ -11,28 +12,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
-
-// ─────────────────────────────────────────────────────────────
-// Daily rate limit tracking (500 messages/day max for WA)
-// Uses Redis counter that resets at midnight IST
-// ─────────────────────────────────────────────────────────────
-const DAILY_WA_LIMIT = 500;
-const WA_RATE_KEY = () => {
-  const IST = new Date(Date.now() + 5.5 * 3600000);
-  return `hsm:wa:daily:${IST.toISOString().slice(0, 10)}`;  // e.g. "hsm:wa:daily:2024-11-21"
-};
-
-async function checkAndIncrementRateLimit(r: typeof redis): Promise<boolean> {
-  const key = WA_RATE_KEY();
-  const count = await r.incr(key);
-  if (count === 1) await r.expire(key, 86400);   // TTL 24h on first increment
-  if (count > DAILY_WA_LIMIT) {
-    await r.decr(key);                            // Roll back — don't count failed
-    console.warn(`[OutreachWorker] Daily WA limit hit (${DAILY_WA_LIMIT}). Job will retry tomorrow.`);
-    return false;
-  }
-  return true;
-}
 
 // ─────────────────────────────────────────────────────────────
 // OUTREACH WORKER
@@ -61,13 +40,13 @@ export const outreachWorker = new Worker<OutreachJob, JobResult>(
       return { success: true, leadId: data.leadId, channel: data.channel };
     }
 
-    // 3. Rate limit check (WhatsApp only)
-    if (data.channel === 'whatsapp') {
-      const allowed = await checkAndIncrementRateLimit(redis);
-      if (!allowed) {
-        // Throw to trigger BullMQ retry (will be delayed by backoff)
-        throw new Error('RATE_LIMIT: Daily WA limit reached');
-      }
+    // 3. Rate limit / outreach quota checks
+    if (!await canSendNewOutreach()) {
+      throw new Error('RATE_LIMIT: Daily new outreach limit reached');
+    }
+
+    if (data.channel === 'whatsapp' && !await canSendMessage()) {
+      throw new Error('RATE_LIMIT: Daily WA limit reached');
     }
 
     // 4. Generate outreach message via bot (dynamic import avoids circular deps)
@@ -84,6 +63,12 @@ export const outreachWorker = new Worker<OutreachJob, JobResult>(
     } else {
       messageId = await sendEmail(data.email!, data.companyName, message.text);
     }
+
+    if (data.channel === 'whatsapp') {
+      await recordMessageSent();
+    }
+
+    await recordNewOutreach();
 
     // 6. Update lead status → 'contacted'
     await supabase

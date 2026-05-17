@@ -19,22 +19,37 @@ const OUTCOME_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function MeetingsPage() {
   const [meetings,  setMeetings]  = useState<any[]>([]);
+  const [slots,     setSlots]     = useState<any[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<any[]>([]);
+  const [interestedLeads, setInterestedLeads] = useState<any[]>([]);
   const [total,     setTotal]     = useState(0);
   const [loading,   setLoading]   = useState(true);
+  const [slotLoading, setSlotLoading] = useState(true);
   const [tab,       setTab]       = useState<'upcoming' | 'all'>('upcoming');
   const [selected,  setSelected]  = useState<any | null>(null);
   const [dealValue, setDealValue] = useState('');
   const [notes,     setNotes]     = useState('');
   const [saving,    setSaving]    = useState(false);
+  const [slotSavingId, setSlotSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSlotLoading(true);
     const params: Record<string, string> = { limit: '50' };
     if (tab === 'upcoming') params.upcoming = 'true';
-    const data = await api.meetings(params);
-    setMeetings(data.meetings ?? []);
-    setTotal(data.total ?? 0);
+    const [meetingData, slotData, leadData] = await Promise.all([
+      api.meetings(params),
+      api.slots.list({ daysAhead: '14' }),
+      api.leads({ status: 'interested', limit: '20' }),
+    ]);
+
+    setMeetings(meetingData.meetings ?? []);
+    setTotal(meetingData.total ?? 0);
+    setSlots(slotData.slots ?? []);
+    setBookedSlots(slotData.bookedSlots ?? []);
+    setInterestedLeads(leadData.leads ?? []);
     setLoading(false);
+    setSlotLoading(false);
   }, [tab]);
 
   useEffect(() => { load(); }, [load]);
@@ -59,12 +74,31 @@ export default function MeetingsPage() {
     await load();
   };
 
+  const toggleSlot = async (slot: any) => {
+    setSlotSavingId(slot.id);
+    await api.slots.update(slot.id, { is_available: !slot.is_available });
+    setSlotSavingId(null);
+    await load();
+  };
+
   // Group by month
   const byMonth: Record<string, any[]> = {};
   meetings.forEach(m => {
     const month = new Date(m.scheduled_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
     if (!byMonth[month]) byMonth[month] = [];
     byMonth[month].push(m);
+  });
+
+  const slotCalendar: Record<string, Array<{ slot: any; booked: boolean }>> = {};
+  [...slots, ...bookedSlots].forEach(slot => {
+    const day = new Date(slot.slot_datetime).toLocaleDateString('en-IN', {
+      weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata',
+    });
+    if (!slotCalendar[day]) slotCalendar[day] = [];
+    const booked = !slot.is_available || bookedSlots.some((bookedSlot: any) => bookedSlot.id === slot.id);
+    if (!slotCalendar[day].some(entry => entry.slot.id === slot.id)) {
+      slotCalendar[day].push({ slot, booked });
+    }
   });
 
   return (
@@ -87,7 +121,58 @@ export default function MeetingsPage() {
 
       {loading ? (
         <div style={{ color: '#9E9890', fontSize: 14 }}>Loading meetings...</div>
-      ) : meetings.length === 0 ? (
+      ) : (
+        <>
+          <div className="card" style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <p className="section-title" style={{ marginBottom: 6 }}>Slot Management</p>
+                <div style={{ fontSize: 12, color: '#9E9890' }}>Available and booked slots for the next 14 days</div>
+              </div>
+              <button className="btn btn-outline btn-sm" onClick={async () => { setSlotLoading(true); await api.slots.generate({ daysAhead: 14 }); await load(); }} disabled={slotLoading}>
+                {slotLoading ? 'Generating...' : 'Generate Slots'}
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              {Object.entries(slotCalendar).slice(0, 14).map(([day, daySlots]) => (
+                <div key={day} style={{ background: '#FBF8F3', border: '1px solid #E8E3DA', borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1A1714', marginBottom: 10 }}>{day}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
+                    {daySlots.slice(0, 10).map(({ slot, booked }) => (
+                      <div key={slot.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: booked ? '#FCE8E8' : '#EEF6EE', border: booked ? '1px solid #F3B4B4' : '1px solid #C9E5C9' }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#1A1714' }}>{new Date(slot.slot_datetime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' })} IST</div>
+                          <div style={{ fontSize: 10, color: '#6B6560' }}>{booked ? 'Booked' : 'Available'}</div>
+                        </div>
+                        <button className="btn btn-sm" style={{ background: booked ? '#F87171' : '#2A6049', color: '#fff', border: 'none' }} disabled={slotSavingId === slot.id} onClick={() => toggleSlot(slot)}>
+                          {slotSavingId === slot.id ? '...' : booked ? 'Unblock' : 'Block'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: 24 }}>
+            <p className="section-title">Negotiation In Progress</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              {interestedLeads.slice(0, 8).map((lead: any) => (
+                <div key={lead.id} style={{ border: '1px solid #E8E3DA', borderRadius: 10, padding: 14, background: '#FFFDF9' }}>
+                  <div style={{ fontWeight: 700, color: '#1A1714', marginBottom: 4 }}>{lead.company_name}</div>
+                  <div style={{ fontSize: 12, color: '#6B6560' }}>{lead.owner_name ?? 'Unknown'} · {lead.source}</div>
+                  <div style={{ fontSize: 11, color: '#9E9890', marginTop: 8 }}>Status: {lead.status}</div>
+                </div>
+              ))}
+              {interestedLeads.length === 0 && (
+                <div style={{ fontSize: 13, color: '#9E9890' }}>No negotiation leads right now.</div>
+              )}
+            </div>
+          </div>
+
+          {meetings.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '60px 40px' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>◷</div>
           <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: 22, color: '#1A1714', marginBottom: 8 }}>No meetings yet</div>
@@ -152,6 +237,8 @@ export default function MeetingsPage() {
             </div>
           </div>
         ))
+      )}
+        </>
       )}
 
       {/* Outcome modal */}

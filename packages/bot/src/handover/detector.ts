@@ -11,6 +11,8 @@ export interface HandoverResult {
   shouldAlert:    boolean;       // whether to ping Smit
 }
 
+export type YesNoSignal = 'yes' | 'no' | 'time_mention' | null;
+
 // ─────────────────────────────────────────────────────────────
 // Tier 1 — Strong buying signals (confidence: 1.0)
 // ─────────────────────────────────────────────────────────────
@@ -118,4 +120,32 @@ export function detectOptOut(message: string): boolean {
     'wrong number', 'galat number',
   ];
   return optOutSignals.some(s => lower.includes(s));
+}
+
+// ─────────────────────────────────────────────────────────────
+// Detect yes/no/time-mention replies for meeting scheduling
+// ─────────────────────────────────────────────────────────────
+export function detectYesNo(message: string): YesNoSignal {
+  const lower = message.toLowerCase().trim();
+
+  const yesPatterns = [
+    /\byes\b/, /\bhaan\b/, /\bhaa\b/, /\bha\b/, /\bbilkul\b/, /\bzaroor\b/, /\bok\b/, /\bokay\b/, /\bdone\b/, /\bconfirmed\b/,
+    /\bsaru\b/, /\bthay\b/, /\bkaro\b/, /fix karo/, /book karo/,
+  ];
+  const noPatterns = [
+    /\bno\b/, /\bnahi\b/, /\bnai\b/, /\bnathi\b/, /\bna\b/, /\bmat\b/, /\bcancel\b/, /band karo/,
+  ];
+
+  if (yesPatterns.some(pattern => pattern.test(lower))) return 'yes';
+  if (noPatterns.some(pattern => pattern.test(lower))) return 'no';
+
+  const timeMentionPatterns = [
+    /\b\d{1,2}(?::\d{2})?\s*(am|pm)?\b/,
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(o'?clock|baje|vage|vaage)?\b/,
+    /\b(ek|do|teen|char|chaar|paanch|panch|chhe|saat|aath|nau|das|gyaarah|baraah)\s*(baje|vage|vaage)?\b/,
+    /\b(sham|shaam|sanje|evening|subah|morning|pm|am)\b/,
+  ];
+
+  if (timeMentionPatterns.some(pattern => pattern.test(lower))) return 'time_mention';
+  return null;
 }

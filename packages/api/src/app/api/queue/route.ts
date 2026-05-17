@@ -1,6 +1,7 @@
 // GET /api/queue — BullMQ queue stats + daily WA usage
 import { NextRequest } from 'next/server';
 import { supabase, requireAuth, ok, err, serverErr } from '../../lib/utils';
+import { getBankStats } from '../../../../../queue/src/lib/message-bank';
 
 export async function GET(req: NextRequest) {
   const authErr = requireAuth(req);
@@ -51,14 +52,26 @@ export async function GET(req: NextRequest) {
       if (res?.ok) bullmqStats = await res.json().catch(() => null);
     }
 
+    const bankStats = await getBankStats();
+
     return ok({
       whatsapp: {
         sentToday:   sentToday ?? 0,
-        dailyLimit:  500,
-        remaining:   500 - (sentToday ?? 0),
+        dailyLimit:  bankStats.today.fresh_allocated,
+        remaining:   bankStats.remaining,
         failedToday: failedToday ?? 0,
         sentThisWeek: sentWeek ?? 0,
-        utilizationPct: Math.round(((sentToday ?? 0) / 500) * 100),
+        utilizationPct: Math.round(((bankStats.todayUsed) / Math.max(bankStats.todayAvailable, 1)) * 100),
+      },
+      messageBank: {
+        today_used: bankStats.todayUsed,
+        today_available: bankStats.todayAvailable,
+        banked: bankStats.bankedCarriedIn,
+        banked_carry_out: bankStats.bankedCarriedOut,
+        new_outreach_today: bankStats.newOutreachToday,
+        new_outreach_limit: bankStats.newOutreachLimit,
+        remaining: bankStats.remaining,
+        fresh_today: bankStats.today.fresh_allocated,
       },
       bullmq:     bullmqStats,
       failedJobs: failedJobs ?? [],

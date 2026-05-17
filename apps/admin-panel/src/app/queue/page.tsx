@@ -26,6 +26,36 @@ export default function QueuePage() {
 
       {loading ? <div style={{ color: '#6B6888', fontFamily: 'JetBrains Mono', fontSize: 13 }}>Loading...</div> : <>
 
+      {/* Message bank */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <p className="section-title">Message Bank</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+          {[
+            { label: 'Fresh Today', value: data?.messageBank?.fresh_today ?? 500, color: '#60A5FA' },
+            { label: 'Banked In', value: data?.messageBank?.banked ?? 0, color: '#C084FC' },
+            { label: 'Total Available', value: data?.messageBank?.today_available ?? wa.dailyLimit ?? 500, color: '#4ADE80' },
+            { label: 'Used Today', value: data?.messageBank?.today_used ?? wa.sentToday ?? 0, color: '#FCD34D' },
+          ].map(item => (
+            <div key={item.label}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: item.color, fontFamily: 'JetBrains Mono' }}>{item.value}</div>
+              <div style={{ fontSize: 11, color: '#6B6888', fontFamily: 'JetBrains Mono', textTransform: 'uppercase', letterSpacing: 1 }}>{item.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {[
+            { label: 'Remaining', value: data?.messageBank?.remaining ?? wa.remaining ?? 500 },
+            { label: 'New Outreach Today', value: `${data?.messageBank?.new_outreach_today ?? 0}/${data?.messageBank?.new_outreach_limit ?? 50}` },
+            { label: 'Carry Out', value: data?.messageBank?.banked_carry_out ?? 0 },
+          ].map(item => (
+            <div key={item.label} style={{ padding: '12px 14px', borderRadius: 8, background: '#13131E', border: '1px solid #1E1E2E' }}>
+              <div style={{ fontSize: 11, color: '#6B6888', fontFamily: 'JetBrains Mono', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{item.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#E8E6F0', fontFamily: 'JetBrains Mono' }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* WA daily limit */}
       <div className="card" style={{ marginBottom: 20 }}>
         <p className="section-title">WhatsApp Daily Limit (500/day)</p>

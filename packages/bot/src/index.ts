@@ -12,6 +12,7 @@ import { generateOutreachMessage } from './flows/outreach';
 import { generateFollowupMessage }  from './flows/followup';
 import { handleObjection }          from './flows/objection-handler';
 import { generateMeetingCloserMessage, generatePhotoAcknowledgement } from './flows/meeting-closer';
+import { handleMeetingResponse } from './flows/smart-meeting';
 import { addBookingJob } from '@hsm/queue';
 
 // Re-export flows for queue workers (stubs replaced by these)
@@ -68,7 +69,15 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
   // ── 2. Detect & lock language ─────────────────────────────
   const detectedLang = await processIncomingLanguage(leadId, message);
 
-  // ── 3. Load conversation history (last 10 messages) ───────
+  // ── 3. Smart meeting negotiation for interested leads ─────
+  if (lead.status === 'interested') {
+    const meetingResponse = await handleMeetingResponse(leadId, message, detectedLang);
+    if (meetingResponse.text !== null || meetingResponse.flowUsed !== 'smart_meeting_idle') {
+      return meetingResponse;
+    }
+  }
+
+  // ── 4. Load conversation history (last 10 messages) ───────
   const { data: history } = await supabase
     .from('conversations')
     .select('direction, message, ai_model_used')
@@ -81,7 +90,7 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
     content: h.message,
   }));
 
-  // ── 4. Media message (lead sent photo/video unprompted) ──────
+  // ── 5. Media message (lead sent photo/video unprompted) ──────
   // Bot NEVER asks for media — meeting is the only goal.
   // If lead sends media anyway, push straight to meeting booking.
   if (waMessage && isMediaMessage(waMessage)) {
@@ -99,7 +108,7 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
     return { ...closer, modelUsed: 'claude-3-5-sonnet', flowUsed: 'media_meeting_push', hotLead: false, optOut: false };
   }
 
-  // ── 5. Hot lead / handover detection ──────────────────────
+  // ── 6. Hot lead / handover detection ──────────────────────
   const handover = detectHandover(message);
 
   if (handover.isHotLead) {
@@ -134,12 +143,12 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
     return { ...closer, modelUsed: 'claude-3-5-sonnet', flowUsed: 'meeting_closer', hotLead: true, optOut: false };
   }
 
-  // ── 6. Update lead status to 'replied' if first reply ─────
+  // ── 7. Update lead status to 'replied' if first reply ─────
   if (lead.status === 'contacted') {
     await updateLeadStatus(leadId, 'replied');
   }
 
-  // ── 7. Route to objection handler (Claude) ────────────────
+  // ── 8. Route to objection handler (Claude) ────────────────
   const objResult = await handleObjection({
     leadId,
     companyName:         lead.company_name,

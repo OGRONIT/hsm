@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redis } from '../redis';
 import { BookingJob, BookingJobSchema, JobResult, QueueName } from '../types/jobs';
 import { createClient } from '@supabase/supabase-js';
+import { suggestMeetingSlot } from '../../bot/src/flows/smart-meeting';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +35,13 @@ export const bookingWorker = new Worker<BookingJob, JobResult>(
     }
 
     // 2. Generate booking push message
-    const message = buildBookingMessage(data);
+    let message: string;
+    try {
+      message = await suggestMeetingSlot(data.leadId, data.language, 1);
+    } catch (error) {
+      console.warn('[BookingWorker] Smart slot suggestion failed, falling back to Calendly copy:', error);
+      message = buildBookingMessage(data);
+    }
 
     // 3. Send via WhatsApp or email
     let messageId: string;

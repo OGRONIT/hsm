@@ -127,20 +127,8 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
       calendlyUrl:    CALENDLY_URL,
     });
 
-    // Also generate an immediate closing response
-    const closer = await generateMeetingCloserMessage({
-      leadId,
-      companyName:         lead.company_name,
-      ownerName:           lead.owner_name,
-      industry:            lead.industry,
-      source:              lead.source,
-      channel,
-      triggerMessage:      message,
-      conversationHistory,
-    });
-
     await updateLeadStatus(leadId, 'interested');
-    return { ...closer, modelUsed: 'claude-3-5-sonnet', flowUsed: 'meeting_closer', hotLead: true, optOut: false };
+    return { text: null, tokensUsed: 0, costUsd: 0, modelUsed: 'none', flowUsed: 'meeting_closer', hotLead: true, optOut: false };
   }
 
   // ── 7. Update lead status to 'replied' if first reply ─────

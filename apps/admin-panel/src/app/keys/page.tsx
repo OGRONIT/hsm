@@ -147,7 +147,7 @@ export default function KeysPage() {
             </thead>
             <tbody>
               {keys.map((key: any) => {
-                const meta    = SERVICE_META[key.service] ?? {};
+                const meta = SERVICE_META[key.service];
                 const testRes = results[key.service];
                 const isTesting = testing[key.service];
 
@@ -155,16 +155,16 @@ export default function KeysPage() {
                   <tr key={key.service}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>{meta.icon ?? '🔑'}</span>
+                        <span style={{ fontSize: 16 }}>{meta?.icon ?? '🔑'}</span>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: '#E8E6F0' }}>{meta.label ?? key.service}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: '#E8E6F0' }}>{meta?.label ?? key.service}</div>
                           <div style={{ fontSize: 11, color: '#6B6888' }}>{key.service}</div>
                         </div>
                       </div>
                     </td>
                     <td>
                       <span className="mono" style={{ fontSize: 11, color: '#6B6888', background: '#13131E', padding: '2px 6px', borderRadius: 4 }}>
-                        {meta.envVar ?? '—'}
+                        {meta?.envVar ?? '—'}
                       </span>
                     </td>
                     <td>
@@ -206,7 +206,7 @@ export default function KeysPage() {
                         </button>
 
                         {/* Docs link */}
-                        {meta.docsUrl && (
+                        {meta?.docsUrl && (
                           <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
                             ↗ Docs
                           </a>

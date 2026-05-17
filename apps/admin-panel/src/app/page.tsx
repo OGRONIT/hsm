@@ -25,8 +25,8 @@ export default function DashboardPage() {
 
   if (loading) return <div className="page" style={{ color: '#6B6888', fontFamily: 'JetBrains Mono', fontSize: 13 }}>Loading dashboard...</div>;
 
-  const funnel = analytics?.funnel ?? {};
-  const totalLeads = Object.values(funnel).reduce((a: number, b: any) => a + b, 0);
+  const funnel: Record<string, number> = analytics?.funnel ?? {};
+  const totalLeads = Object.values(funnel).reduce((sum, value) => sum + Number(value), 0);
 
   return (
     <div className="page">

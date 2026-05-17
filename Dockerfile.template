@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────
+# HSM — Shared Dockerfile (copy to each package/app)
+# Multi-stage build: install → build → run
+# ─────────────────────────────────────────────────────────────
+
+FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Install dependencies
+FROM base AS deps
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production
+
+# Build
+FROM base AS builder
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Run
+FROM base AS runner
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./package.json
+
+# For Next.js apps
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public 2>/dev/null || true
+
+EXPOSE 3000
+CMD ["npm", "start"]

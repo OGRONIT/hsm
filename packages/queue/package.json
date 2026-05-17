@@ -1,0 +1,26 @@
+{
+  "name": "@hsm/queue",
+  "version": "1.0.0",
+  "description": "HSM BullMQ queue system — outreach, followup, booking workers",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "worker:outreach": "tsx src/workers/outreach.worker.ts",
+    "worker:followup": "tsx src/workers/followup.worker.ts",
+    "worker:booking": "tsx src/workers/booking.worker.ts"
+  },
+  "dependencies": {
+    "bullmq": "^5.4.2",
+    "ioredis": "^5.3.2",
+    "@supabase/supabase-js": "^2.43.0",
+    "zod": "^3.23.4",
+    "date-fns": "^3.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "tsx": "^4.10.5",
+    "@types/node": "^20.12.12"
+  }
+}

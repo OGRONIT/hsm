@@ -1,0 +1,200 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────
+# HSM — Hariii Sales Machine
+# Local development docker-compose
+# Production: Railway (backend) + Vercel (frontend)
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Redis (local dev — use Upstash in prod) ───────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hsm-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Queue workers (BullMQ) ────────────────────────────────
+  queue:
+    build:
+      context: ./packages/queue
+      dockerfile: Dockerfile
+    container_name: hsm-queue
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WHATSAPP_API_URL=${WHATSAPP_API_URL}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - SMIT_WHATSAPP_NUMBER=${SMIT_WHATSAPP_NUMBER}
+      - CALENDLY_BOOKING_URL=${CALENDLY_BOOKING_URL}
+      - ADMIN_PANEL_URL=${ADMIN_PANEL_URL}
+      - QUEUE_SERVICE_URL=http://queue:4000
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+
+  # ── Bot service ───────────────────────────────────────────
+  bot:
+    build:
+      context: ./packages/bot
+      dockerfile: Dockerfile
+    container_name: hsm-bot
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CALENDLY_BOOKING_URL=${CALENDLY_BOOKING_URL}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Scrapers ──────────────────────────────────────────────
+  scrapers:
+    build:
+      context: ./packages/scrapers
+      dockerfile: Dockerfile
+    container_name: hsm-scrapers
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - BRIGHTDATA_USERNAME=${BRIGHTDATA_USERNAME}
+      - BRIGHTDATA_PASSWORD=${BRIGHTDATA_PASSWORD}
+      - BRIGHTDATA_HOST=${BRIGHTDATA_HOST}
+      - APIFY_API_TOKEN=${APIFY_API_TOKEN}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - INSTAGRAM_HASHTAGS=${INSTAGRAM_HASHTAGS}
+      - FACEBOOK_GROUP_IDS=${FACEBOOK_GROUP_IDS}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - SCRAPER_SERVICE_URL=http://scrapers:5000
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+    depends_on:
+      - redis
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+
+  # ── Alerts scheduler ──────────────────────────────────────
+  alerts:
+    build:
+      context: ./packages/alerts
+      dockerfile: Dockerfile
+    container_name: hsm-alerts
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - SMIT_WHATSAPP_NUMBER=${SMIT_WHATSAPP_NUMBER}
+      - WHATSAPP_API_URL=${WHATSAPP_API_URL}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - ADMIN_PANEL_URL=${ADMIN_PANEL_URL}
+      - HARIII_PORTAL_URL=${HARIII_PORTAL_URL}
+    restart: unless-stopped
+
+  # ── API (Next.js) ─────────────────────────────────────────
+  api:
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
+    container_name: hsm-api
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WHATSAPP_API_URL=${WHATSAPP_API_URL}
+      - WHATSAPP_API_TOKEN=${WHATSAPP_API_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}
+      - WHATSAPP_WEBHOOK_VERIFY_TOKEN=${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - CALENDLY_API_KEY=${CALENDLY_API_KEY}
+      - CALENDLY_BOOKING_URL=${CALENDLY_BOOKING_URL}
+      - CALENDLY_WEBHOOK_SECRET=${CALENDLY_WEBHOOK_SECRET}
+      - REDIS_URL=redis://redis:6379
+      - BRIGHTDATA_USERNAME=${BRIGHTDATA_USERNAME}
+      - BRIGHTDATA_PASSWORD=${BRIGHTDATA_PASSWORD}
+      - APIFY_API_TOKEN=${APIFY_API_TOKEN}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - ADMIN_API_SECRET=${ADMIN_API_SECRET}
+      - ADMIN_PANEL_URL=${ADMIN_PANEL_URL}
+      - QUEUE_SERVICE_URL=http://queue:4000
+      - SCRAPER_SERVICE_URL=http://scrapers:5000
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - NODE_ENV=development
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+      - queue
+    restart: unless-stopped
+
+  # ── Admin Panel (Next.js) ─────────────────────────────────
+  admin:
+    build:
+      context: ./apps/admin-panel
+      dockerfile: Dockerfile
+    container_name: hsm-admin
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+      - NEXT_PUBLIC_ADMIN_API_SECRET=${ADMIN_API_SECRET}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ── Hariii Portal (Next.js) ───────────────────────────────
+  portal:
+    build:
+      context: ./apps/hariii-portal
+      dockerfile: Dockerfile
+    container_name: hsm-portal
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+      - NEXT_PUBLIC_ADMIN_API_SECRET=${ADMIN_API_SECRET}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    ports:
+      - "3002:3002"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: hsm-network

@@ -1,0 +1,22 @@
+{
+  "name": "@hsm/messaging",
+  "version": "1.0.0",
+  "description": "HSM Messaging — WhatsApp Business API, Resend email, Calendly",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0",
+    "resend": "^3.3.0",
+    "zod": "^3.23.4",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "tsx": "^4.10.5",
+    "@types/node": "^20.12.12"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@hsm/scrapers",
+  "version": "1.0.0",
+  "description": "HSM Scrapers — IndiaMart, Google Maps, JustDial, LinkedIn, Instagram, Facebook",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "scrape:indiamart":       "tsx src/sources/indiamart.ts",
+    "scrape:googlemaps":      "tsx src/sources/google-maps.ts",
+    "scrape:justdial":        "tsx src/sources/justdial.ts",
+    "scrape:instagram":       "tsx src/sources/instagram.ts",
+    "scrape:facebook":        "tsx src/sources/facebook-groups.ts",
+    "scrape:linkedin":        "tsx src/sources/linkedin.ts"
+  },
+  "dependencies": {
+    "playwright":             "^1.44.0",
+    "playwright-extra":       "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "@supabase/supabase-js":  "^2.43.0",
+    "zod":                    "^3.23.4",
+    "node-cron":              "^3.0.3",
+    "p-limit":                "^5.0.0",
+    "date-fns":               "^3.6.0"
+  },
+  "devDependencies": {
+    "typescript":  "^5.4.5",
+    "tsx":         "^4.10.5",
+    "@types/node": "^20.12.12",
+    "@types/node-cron": "^3.0.11"
+  }
+}

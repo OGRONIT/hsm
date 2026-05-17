@@ -1,0 +1,25 @@
+{
+  "name": "@hsm/api",
+  "version": "1.0.0",
+  "description": "HSM Backend API — Next.js 14 App Router API routes",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "@supabase/supabase-js": "^2.43.0",
+    "zod": "^3.23.4",
+    "@hsm/queue": "*",
+    "@hsm/bot": "*",
+    "@hsm/messaging": "*",
+    "@hsm/alerts": "*",
+    "@hsm/scrapers": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.1"
+  }
+}

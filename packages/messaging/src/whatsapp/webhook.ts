@@ -10,8 +10,8 @@ import { sendWhatsAppText, markMessageRead, downloadAndStoreMedia } from './clie
 import { processInboundMessage } from '@hsm/bot';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const WA_APP_SECRET    = process.env.WHATSAPP_APP_SECRET!;

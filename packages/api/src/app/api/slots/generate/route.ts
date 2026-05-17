@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { requireAuth, ok, err, serverErr } from '../../../lib/utils';
-import { generateAvailableSlots } from '../../../../../../bot/src/flows/smart-meeting';
+import { requireAuth, ok, err, serverErr } from '../../../../lib/utils';
+import { generateAvailableSlots } from '../../../../lib/slots';
 
 const GenerateSchema = z.object({
   daysAhead: z.number().int().min(1).max(30).optional(),

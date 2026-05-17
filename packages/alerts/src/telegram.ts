@@ -66,7 +66,7 @@ async function sendTelegramDocument(
   try {
     const form = new FormData();
     form.append('chat_id', chatId);
-    form.append('document', new Blob([fileContent]), filename);
+    form.append('document', new Blob([new Uint8Array(fileContent)]), filename);
     if (caption) form.append('caption', caption);
 
     const res  = await fetch(`${TELEGRAM_API}/bot${token}/sendDocument`, {

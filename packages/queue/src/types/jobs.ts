@@ -69,6 +69,7 @@ export const BookingJobSchema = z.object({
   language:        Language,
   triggerMessage:  z.string(),                // The message that triggered booking
   calendlyUrl:     z.string().url().optional(),
+  suppressOutbound: z.boolean().optional(),
 });
 export type BookingJob = z.infer<typeof BookingJobSchema>;
 
@@ -86,9 +87,9 @@ export const JobName = {
 // QUEUE NAMES
 // ─────────────────────────────────────────────────────────────
 export const QueueName = {
-  OUTREACH: 'hsm:outreach',
-  FOLLOWUP: 'hsm:followup',
-  BOOKING:  'hsm:booking',
+  OUTREACH: 'hsm-outreach',
+  FOLLOWUP: 'hsm-followup',
+  BOOKING:  'hsm-booking',
 } as const;
 
 // ─────────────────────────────────────────────────────────────

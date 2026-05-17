@@ -10,11 +10,11 @@ import { createClient } from '@supabase/supabase-js';
 import { alertDailySummary, alertWeeklyReport, alertSystemError } from './telegram';
 import { waAlertDailySummary } from './whatsapp';
 import { format, startOfWeek, endOfWeek, subDays } from 'date-fns';
-import { getBankStats, runMidnightBankRollover } from '../../queue/src/lib/message-bank';
+import { getBankStats, runMidnightBankRollover } from '@hsm/queue';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 // ─────────────────────────────────────────────────────────────

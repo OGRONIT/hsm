@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { requireAuth, ok, err, serverErr, supabase } from '../../lib/utils';
-import { listAvailableSlots } from '../../../../../bot/src/flows/smart-meeting';
+import { requireAuth, ok, err, serverErr, supabase } from '../../../lib/utils';
+import { listAvailableSlots } from '../../../lib/slots';
 
 export async function GET(req: NextRequest) {
   const authErr = requireAuth(req);

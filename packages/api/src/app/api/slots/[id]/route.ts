@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { requireAuth, ok, err, serverErr } from '../../../lib/utils';
-import { setSlotAvailability } from '../../../../../../bot/src/flows/smart-meeting';
+import { requireAuth, ok, err, serverErr } from '../../../../lib/utils';
+import { setSlotAvailability } from '../../../../lib/slots';
 
 const PatchSchema = z.object({
   is_available: z.boolean(),

@@ -11,6 +11,7 @@ import { bookingWorker }  from './workers/booking.worker';
 
 // Re-export queue helpers for use in other packages
 export { addOutreachJob, addFollowupJob, addBookingJob, getAllQueueStats } from './queues';
+export { getBankStats, getOrCreateTodayBank, runMidnightBankRollover, canSendMessage, canSendNewOutreach, recordMessageSent, recordNewOutreach } from './lib/message-bank';
 export * from './types/jobs';
 
 async function main() {

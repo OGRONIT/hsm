@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { addDays } from 'date-fns';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;

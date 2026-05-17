@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { NextRequest } from 'next/server';
-import { supabase, requireAuth, ok, err, serverErr } from '../../lib/utils';
+import { supabase, requireAuth, ok, err, serverErr } from '../../../lib/utils';
 import { z } from 'zod';
 
 const BotActionSchema = z.discriminatedUnion('action', [

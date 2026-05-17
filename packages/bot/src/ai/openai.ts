@@ -7,7 +7,7 @@
 import OpenAI from 'openai';
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY?.trim() || 'placeholder-openai-key',
 });
 
 export interface OpenAIResponse {

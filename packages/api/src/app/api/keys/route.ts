@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { NextRequest } from 'next/server';
-import { supabase, requireAuth, ok, err, serverErr } from '../../lib/utils';
+import { supabase, requireAuth, ok, err, serverErr } from '../../../lib/utils';
 import { z } from 'zod';
 
 // ─── GET all keys ─────────────────────────────────────────────

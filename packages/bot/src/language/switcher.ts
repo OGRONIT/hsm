@@ -8,8 +8,8 @@ import { DetectedLanguage, detectLanguage } from './detector';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 export interface LanguageState {
@@ -47,7 +47,7 @@ export async function getLanguageState(leadId: string): Promise<LanguageState> {
   }
 
   // Detect language from their actual replies
-  const replyText = messages!.map(m => m.message).join(' ');
+  const replyText = messages!.map((m: { message: string }) => m.message).join(' ');
   const detected  = detectLanguage(replyText);
 
   // Once they reply in a non-English language → lock it

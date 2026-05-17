@@ -2,7 +2,7 @@
 // PATCH /api/meetings/[id] — Update outcome, deal value, notes
 
 import { NextRequest } from 'next/server';
-import { supabase, requireAuth, ok, err, serverErr, parsePagination } from '../../lib/utils';
+import { supabase, requireAuth, ok, err, serverErr, parsePagination } from '../../../lib/utils';
 import { z } from 'zod';
 
 export async function GET(req: NextRequest) {

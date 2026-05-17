@@ -7,10 +7,11 @@
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+const resendApiKey = process.env.RESEND_API_KEY?.trim() || '';
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const FROM_EMAIL = 'Smit Barbhaya <smit@hariii.design>';
@@ -32,11 +33,15 @@ export async function sendOutreachEmail(input: OutreachEmailInput): Promise<{
 }> {
   const subject = buildOutreachSubject(input.companyName, input.industry);
 
+  if (!resend) {
+    return { success: false, emailId: null, error: 'RESEND_API_KEY not configured' };
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from:     FROM_EMAIL,
       to:       [`${input.toName} <${input.to}>`],
-      replyTo:  REPLY_TO,
+      reply_to: REPLY_TO,
       subject,
       html:     buildOutreachHtml(input.bodyText, input.toName),
       text:     input.bodyText,   // Plain text fallback
@@ -70,11 +75,15 @@ export async function sendFollowupEmail(input: {
   bodyText:       string;
   followupNumber: 1 | 2;
 }): Promise<{ success: boolean; emailId: string | null; error?: string }> {
+  if (!resend) {
+    return { success: false, emailId: null, error: 'RESEND_API_KEY not configured' };
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from:    FROM_EMAIL,
       to:      [`${input.toName} <${input.to}>`],
-      replyTo: REPLY_TO,
+      reply_to: REPLY_TO,
       subject: `Following up — Hariii Design × ${input.companyName}`,
       html:    buildFollowupHtml(input.bodyText, input.toName),
       text:    input.bodyText,
@@ -95,10 +104,12 @@ export async function sendFollowupEmail(input: {
 // Health check — used by admin panel "Test Key" button
 // ─────────────────────────────────────────────────────────────
 export async function testResendConnection(): Promise<{ ok: boolean; error?: string }> {
+  if (!resendApiKey) return { ok: false, error: 'RESEND_API_KEY not set' };
+
   try {
     // Resend has no explicit ping — check domains list as proxy
     const res = await fetch('https://api.resend.com/domains', {
-      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
+      headers: { 'Authorization': `Bearer ${resendApiKey}` },
     });
     return { ok: res.ok };
   } catch (err: any) {

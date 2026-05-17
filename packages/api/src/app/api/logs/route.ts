@@ -1,6 +1,6 @@
 // GET /api/logs — System logs with filters (admin panel live feed)
 import { NextRequest } from 'next/server';
-import { supabase, requireAuth, ok, err, serverErr, parsePagination } from '../../lib/utils';
+import { supabase, requireAuth, ok, err, serverErr, parsePagination } from '../../../lib/utils';
 
 export async function GET(req: NextRequest) {
   const authErr = requireAuth(req);

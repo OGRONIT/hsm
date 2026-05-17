@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0",
+    "@hsm/bot": "file:../bot",
     "resend": "^3.3.0",
     "zod": "^3.23.4",
     "crypto": "^1.0.1"

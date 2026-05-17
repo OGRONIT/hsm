@@ -2,11 +2,10 @@ import { Worker, Job } from 'bullmq';
 import { redis } from '../redis';
 import { BookingJob, BookingJobSchema, JobResult, QueueName } from '../types/jobs';
 import { createClient } from '@supabase/supabase-js';
-import { suggestMeetingSlot } from '../../bot/src/flows/smart-meeting';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const CALENDLY_URL = process.env.CALENDLY_BOOKING_URL ?? 'https://calendly.com/smit-hariii/20min';
@@ -34,18 +33,14 @@ export const bookingWorker = new Worker<BookingJob, JobResult>(
       return { success: true, leadId: data.leadId, channel: data.channel };
     }
 
-    // 2. Generate booking push message
-    let message: string;
-    try {
-      message = await suggestMeetingSlot(data.leadId, data.language, 1);
-    } catch (error) {
-      console.warn('[BookingWorker] Smart slot suggestion failed, falling back to Calendly copy:', error);
-      message = buildBookingMessage(data);
-    }
+    // 2. Generate booking push message unless the bot already sent the slot suggestion
+    const message = data.suppressOutbound ? '' : buildBookingMessage(data);
 
     // 3. Send via WhatsApp or email
     let messageId: string;
-    if (data.channel === 'whatsapp') {
+    if (data.suppressOutbound) {
+      messageId = `booking_suppressed_${Date.now()}`;
+    } else if (data.channel === 'whatsapp') {
       messageId = await sendWhatsAppMessage(data.phone, message);
     } else {
       messageId = await sendEmail(data.email!, data.companyName, message);
@@ -58,17 +53,19 @@ export const bookingWorker = new Worker<BookingJob, JobResult>(
       .eq('id', data.leadId);
 
     // 5. Log conversation
-    await supabase.from('conversations').insert({
-      lead_id:       data.leadId,
-      channel:       data.channel,
-      direction:     'outbound',
-      message,
-      language:      data.language,
-      ai_model_used: 'claude-3-5-sonnet',
-      wa_message_id: data.channel === 'whatsapp' ? messageId : null,
-      email_id:      data.channel === 'email' ? messageId : null,
-      status:        'sent',
-    });
+    if (!data.suppressOutbound) {
+      await supabase.from('conversations').insert({
+        lead_id:       data.leadId,
+        channel:       data.channel,
+        direction:     'outbound',
+        message,
+        language:      data.language,
+        ai_model_used: 'claude-3-5-sonnet',
+        wa_message_id: data.channel === 'whatsapp' ? messageId : null,
+        email_id:      data.channel === 'email' ? messageId : null,
+        status:        'sent',
+      });
+    }
 
     // 6. 🔔 ALERT SMIT — Telegram + WhatsApp
     await fireHotLeadAlert({
@@ -109,8 +106,8 @@ bookingWorker.on('completed', (job) => {
 bookingWorker.on('failed', async (job, err) => {
   console.error(`[BookingWorker] CRITICAL — booking job ${job?.id} failed:`, err.message);
   const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
   );
   await sb.from('system_logs').insert({
     level:    'critical',

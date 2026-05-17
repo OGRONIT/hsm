@@ -10,8 +10,8 @@ import { createClient } from '@supabase/supabase-js';
 // Supabase service-role client (full DB access)
 // ─────────────────────────────────────────────────────────────
 export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 // ─────────────────────────────────────────────────────────────

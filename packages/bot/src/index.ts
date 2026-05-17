@@ -12,7 +12,7 @@ import { generateOutreachMessage } from './flows/outreach';
 import { generateFollowupMessage }  from './flows/followup';
 import { handleObjection }          from './flows/objection-handler';
 import { generateMeetingCloserMessage, generatePhotoAcknowledgement } from './flows/meeting-closer';
-import { handleMeetingResponse } from './flows/smart-meeting';
+import { handleMeetingResponse, suggestMeetingSlot } from './flows/smart-meeting';
 import { addBookingJob } from '@hsm/queue';
 
 // Re-export flows for queue workers (stubs replaced by these)
@@ -20,8 +20,8 @@ export { generateOutreachMessage }  from './flows/outreach';
 export { generateFollowupMessage }  from './flows/followup';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const CALENDLY_URL = process.env.CALENDLY_BOOKING_URL ?? 'https://calendly.com/smit-hariii/20min';
@@ -85,7 +85,7 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
     .order('created_at', { ascending: true })
     .limit(10);
 
-  const conversationHistory = (history ?? []).map(h => ({
+  const conversationHistory = (history ?? []).map((h: { direction: string; message: string }) => ({
     role:    h.direction === 'outbound' ? 'assistant' as const : 'user' as const,
     content: h.message,
   }));
@@ -125,10 +125,12 @@ export async function processInboundMessage(input: InboundMessage): Promise<BotR
       language:       detectedLang,
       triggerMessage: message,
       calendlyUrl:    CALENDLY_URL,
+      suppressOutbound: true,
     });
 
     await updateLeadStatus(leadId, 'interested');
-    return { text: null, tokensUsed: 0, costUsd: 0, modelUsed: 'none', flowUsed: 'meeting_closer', hotLead: true, optOut: false };
+    const smartMeeting = await suggestMeetingSlot(leadId, detectedLang, 1);
+    return { text: smartMeeting, tokensUsed: 0, costUsd: 0, modelUsed: 'system', flowUsed: 'smart_meeting_initial', hotLead: true, optOut: false };
   }
 
   // ── 7. Update lead status to 'replied' if first reply ─────

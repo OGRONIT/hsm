@@ -8,8 +8,8 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const CALENDLY_WEBHOOK_SECRET = process.env.CALENDLY_WEBHOOK_SECRET ?? '';
@@ -64,6 +64,11 @@ async function handleMeetingBooked(data: CalendlyEventData): Promise<void> {
   const eventId      = data.event?.uuid;
   const startTime    = data.event?.start_time;
   const meetLink     = data.event?.location?.join_url ?? null;
+
+  if (!inviteeEmail || !startTime) {
+    console.warn('[Calendly] Missing invitee email or start time — skipping meeting sync');
+    return;
+  }
 
   console.log(`[Calendly] Meeting booked by ${inviteeName} (${inviteeEmail})`);
 

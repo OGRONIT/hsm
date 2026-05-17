@@ -1,6 +1,6 @@
 // GET /api/analytics — Full analytics for Hariii Portal dashboard
 import { NextRequest } from 'next/server';
-import { supabase, requireAuth, ok, err, serverErr } from '../../lib/utils';
+import { supabase, requireAuth, ok, err, serverErr } from '../../../lib/utils';
 
 export async function GET(req: NextRequest) {
   const authErr = requireAuth(req);

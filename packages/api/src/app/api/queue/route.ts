@@ -1,6 +1,6 @@
 // GET /api/queue — BullMQ queue stats + daily WA usage
 import { NextRequest } from 'next/server';
-import { supabase, requireAuth, ok, err, serverErr } from '../../lib/utils';
+import { supabase, requireAuth, ok, err, serverErr } from '../../../lib/utils';
 import { getBankStats } from '../../../../../queue/src/lib/message-bank';
 
 export async function GET(req: NextRequest) {

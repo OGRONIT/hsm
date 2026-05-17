@@ -5,8 +5,8 @@ import { addFollowupJob } from '../queues';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -130,8 +130,8 @@ followupWorker.on('completed', (job) => {
 followupWorker.on('failed', async (job, err) => {
   console.error(`[FollowupWorker] Job ${job?.id} failed:`, err.message);
   const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
   );
   await sb.from('system_logs').insert({
     level:    'error',

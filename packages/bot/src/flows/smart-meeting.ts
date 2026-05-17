@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import Redis from 'ioredis';
-import { DetectedLanguage, detectYesNo } from '../handover/detector';
+import { detectYesNo } from '../handover/detector';
+import { DetectedLanguage } from '../language/detector';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 const redis = new Redis(process.env.REDIS_URL!, {

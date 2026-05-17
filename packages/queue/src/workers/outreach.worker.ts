@@ -9,8 +9,8 @@ import { canSendMessage, canSendNewOutreach, recordMessageSent, recordNewOutreac
 // Supabase client (service role — full DB access)
 // ─────────────────────────────────────────────────────────────
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -143,8 +143,8 @@ outreachWorker.on('completed', (job) => {
 outreachWorker.on('failed', async (job, err) => {
   console.error(`[OutreachWorker] Job ${job?.id} failed:`, err.message);
   const supabase2 = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 'placeholder-service-role-key',
   );
   await supabase2.from('system_logs').insert({
     level:    'error',

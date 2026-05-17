@@ -11,7 +11,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0",
     "node-cron": "^3.0.3",
-    "date-fns": "^3.6.0"
+    "date-fns": "^3.6.0",
+    "@hsm/queue": "file:../queue"
   },
   "devDependencies": {
     "typescript": "^5.4.5",
